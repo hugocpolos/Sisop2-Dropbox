@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	int sockfd, n;
 	socklen_t clilen;
 	struct sockaddr_in serv_addr, cli_addr;
-	char buf[256];
+	char buf[1024];
 		
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
 		printf("ERROR opening socket");
@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
 	
 	while (1) {
 		/* receive from socket */
-		n = recvfrom(sockfd, buf, 256, 0, (struct sockaddr *) &cli_addr, &clilen);
+		bzero(buf,1024);
+		n = recvfrom(sockfd, buf, 1024, 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (n < 0) 
 			printf("ERROR on recvfrom");
 		printf("Received a datagram: %s\n", buf);
