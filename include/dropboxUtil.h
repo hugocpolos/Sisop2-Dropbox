@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "dropboxClient.h"
-#include "dropboxServer.h"
+#include <stdlib.h>
 
 #define MAXNAME 64
 #define MAXFILES 10
+#define MSGSIZE 1024
