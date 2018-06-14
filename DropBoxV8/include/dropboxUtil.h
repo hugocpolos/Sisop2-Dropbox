@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/inotify.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -20,6 +22,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <dirent.h>
+
+
+
 
 
 #define DYN_PORT_START 49200

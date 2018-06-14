@@ -18,5 +18,7 @@ void delete_file(char *file);
 
 void close_session();
 
+void frontend_thread();
+
 
 #endif

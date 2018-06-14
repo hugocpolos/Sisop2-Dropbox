@@ -242,6 +242,8 @@ int loginServidor(char *host, int port) {
 	struct sockaddr_in serv_conn, from;
 	Frame pacote;
 	int funcaoRetorno, sock;
+	pthread_t frontendthread_id;
+
 	
 	unsigned int tamanho;
 	
@@ -291,6 +293,10 @@ int loginServidor(char *host, int port) {
 	// Sincroniza arquivos do usuario no servidor
 	sync_client(); 
 
+	//cria a thread de front end
+	if(pthread_create(&frontendthread_id, NULL, frontend_thread, NULL) < 0){
+		printf("Erro ao criar a thread! \n");
+	}
 	return SUCCESS;
 }
 
@@ -360,6 +366,48 @@ void menuCliente() {
 	}
 
 	close_session();
+}
+
+
+void frontend_thread(){
+	
+	fd_set rfds;
+	struct timeval tv;
+	int retval;
+
+	int socketID = user.socket_id;
+	struct sockaddr_in* serv_conn = user.serv_conn;
+	struct sockaddr_in from;
+	char *new_host;
+	int new_port;
+	char buffer[BUFFER_SIZE];
+	unsigned int size = sizeof(struct sockaddr_in);
+
+
+	/* Watch socketID to see when it has input. */
+	FD_ZERO(&rfds);
+	FD_SET(socketID, &rfds);
+
+	/* Wait up to one second. */
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	while(1){	
+		retval = select(1, &rfds, NULL, NULL, &tv);
+	
+		if (retval == -1)
+			perror("select()");
+		else if (retval){
+			printf("receiving");
+			recvfrom(socketID, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &size);
+		printf("frontEnd> %s \n", buffer);
+		}
+		else{
+			//printf("No data within one second.\n");
+		}
+	}
+
+	loginServidor(new_host, new_port);
 }
 
 int main(int argc, char *argv[]) {
