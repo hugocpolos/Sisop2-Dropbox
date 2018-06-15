@@ -10,6 +10,12 @@ sem_t semaforo;
 ClientList listaClientes; 
 int syncro;
 
+void enviar_novoaddress(){
+	int index = 0;
+	
+}
+
+
 void sincronilis(){
     while(1){
        sleep(5);

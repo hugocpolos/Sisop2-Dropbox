@@ -370,11 +370,11 @@ void menuCliente() {
 
 
 void frontend_thread(){
-	
+	// estruturas e variaveis para a utilização de select()
 	fd_set rfds;
 	struct timeval tv;
 	int retval;
-
+	// estruturas e variaveis de comunicação em socket udp
 	int socketID = user.socket_id;
 	struct sockaddr_in* serv_conn = user.serv_conn;
 	struct sockaddr_in from;
@@ -384,15 +384,18 @@ void frontend_thread(){
 	unsigned int size = sizeof(struct sockaddr_in);
 
 
-	/* Watch socketID to see when it has input. */
-	FD_ZERO(&rfds);
-	FD_SET(socketID, &rfds);
+	
 
-	/* Wait up to one second. */
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
+	while(1){
 
-	while(1){	
+		/* Watch socketID to see when it has input. */
+		FD_ZERO(&rfds);
+		FD_SET(socketID, &rfds);
+
+		/* Wait up to one second. */
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+	
 		retval = select(1, &rfds, NULL, NULL, &tv);
 	
 		if (retval == -1)

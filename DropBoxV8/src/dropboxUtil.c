@@ -181,6 +181,23 @@ Client* procuraCliente(char* userId, ClientList user_list) {
 }
 
 
+Client* procuraCliente_index(int index, ClientList user_list){
+	
+	int i = 0;	
+	ClientList current = user_list;
+	
+	while(current != NULL && i <= index) {
+		if (i == index){
+			return current->client;		
+		}
+		else{
+			i++;
+			current = current->next;
+		}
+	}
+	return NULL;
+}
+
 
 //adiciona um novo cliente na lista de clientes
 ClientList adicionaCliente(char* userID, int socket, ClientList user_list) {

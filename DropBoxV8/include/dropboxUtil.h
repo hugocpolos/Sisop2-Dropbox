@@ -149,6 +149,7 @@ char* getUsuario();
 bool verificaDir(char *pathname);
 
 Client* procuraCliente(char* userId, ClientList user_list);
+Client* procuraCliente_index(int index, ClientList user_list);
 ClientList adicionaCliente(char* userID, int socket, ClientList user_list);
 
 //DEBUG SECTION
