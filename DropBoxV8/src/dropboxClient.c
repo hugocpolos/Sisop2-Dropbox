@@ -9,6 +9,8 @@ UserInfo user;
 int ID_MSG_CLIENT = 0;
 pthread_t sync_thread;
 
+//oi
+
 
 void deleteArquivoCliente(char *arquivo) {
 	// Preenche estrutura pacote
@@ -342,7 +344,7 @@ int loginServidor(char *host, int port) {
 	sync_client(); 
 
 	//cria a thread de front end
-	if(pthread_create(&frontendthread_id, NULL, frontend_thread, NULL) < 0){
+	if(pthread_create(&frontendthread_id, NULL, frontend_thread, sock2) < 0){
 		printf("Erro ao criar a thread! \n");
 	}
 	return SUCCESS;
@@ -417,49 +419,29 @@ void menuCliente() {
 }
 
 
-void frontend_thread(){
-	// estruturas e variaveis para a utilização de select()
-	fd_set rfds;
-	struct timeval tv;
-	int retval;
+void frontend_thread(int socketId){
+
 	// estruturas e variaveis de comunicação em socket udp
-	int socketID = user.socket_id;
-	struct sockaddr_in* serv_conn = user.serv_conn;
 	struct sockaddr_in from;
-	char *new_host;
-	int new_port;
+	char *novo_host;
+	int nova_porta;
 	char buffer[BUFFER_SIZE];
+	int valor_ret;
 	unsigned int size = sizeof(struct sockaddr_in);
 
+	while(TRUE){
+		valor_ret = recvfrom(socketId, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &size);
+		novo_host = from.sin_addr.s_addr;
+		nova_porta = from.sin_port;
 
-	
-
-	while(1){
-
-		/* Watch socketID to see when it has input. */
-		FD_ZERO(&rfds);
-		FD_SET(socketID, &rfds);
-
-		/* Wait up to one second. */
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-	
-		retval = select(1, &rfds, NULL, NULL, &tv);
-	
-		if (retval == -1)
-			perror("select()");
-		else if (retval){
-			printf("receiving");
-			recvfrom(socketID, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &size);
-		printf("frontEnd> %s \n", buffer);
-		}
-		else{
-			//printf("No data within one second.\n");
-		}
+		printf("\nvalor novo_host = %s\nvalor nova_porta = %d", novo_host, nova_porta);
+		//close(user.socket_id);
+		//close(socketId);
+		//loginServidor(novo_host, nova_porta);
 	}
-
-	loginServidor(new_host, new_port);
 }
+
+
 
 int main(int argc, char *argv[]) {
 	int port, socketID;

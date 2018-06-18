@@ -331,6 +331,7 @@ void esperaConexao(char* endereco, int sockid) {
 	pthread_t thread_id;
 
 	struct sockaddr_in cli_addr;
+	struct sockaddr_in cli_front;
 	clilen = sizeof(struct sockaddr_in);
     // Controla ack recebidos pelo servidor
 	pacote_server.ack = FALSE; 
@@ -348,7 +349,7 @@ void esperaConexao(char* endereco, int sockid) {
 		strcpy(pacote_server.user, SERVER_USER);
 		pacote.ack = TRUE; pacote_server.ack = TRUE; 
 
-		sockaddr cli_front = cli_addr;
+		cli_front = cli_addr;
 		cli_front.sin_port = (unsigned short) atoi(pacote.buffer);
 		funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_front, sizeof(struct sockaddr));
 			if (funcaoRetorno < 0) 
