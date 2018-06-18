@@ -340,6 +340,8 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("Erro em receive \n");
 		printf("     Iniciou a conexao com um cliente");
 		
+		printf("\nPorta recebida de front end: %s", pacote.buffer);
+
 		bzero(pacote.buffer, BUFFER_SIZE -1);		
 		strcpy(pacote.buffer, "Recebimento de msg\n");
 		strcpy(pacote_server.user, SERVER_USER);
@@ -370,7 +372,7 @@ void esperaConexao(char* endereco, int sockid) {
 			if (funcaoRetorno < 0) 
 				printf("Erro em send \n");
 		}
-		else printf("\n Erro ao criar nova conexao para o cliente! \n");	
+		else printf("\n Erro ao criar nova conexao para o cliente! \n");
 	}
 }
 

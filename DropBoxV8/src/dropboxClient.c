@@ -9,6 +9,7 @@ UserInfo user;
 int ID_MSG_CLIENT = 0;
 pthread_t sync_thread;
 
+
 void deleteArquivoCliente(char *arquivo) {
 	// Preenche estrutura pacote
 	Frame pacote;
@@ -238,22 +239,68 @@ void getArquivoCliente(char *nomeArq) {
 		printf("\nErro ao abrir o arquivo = %s", caminho);
 }
 
+int openFrontEnd(int *frontend_port) {
+
+	struct sockaddr_in frontend;
+	int sockid;
+	int open = 0;
+
+	while(open == 0){
+		// Inicia estrutura de socket e servidor
+	  	bzero((char *) &frontend, sizeof(frontend));
+		frontend.sin_family = AF_INET; 
+		frontend.sin_port = htons(*frontend_port); 
+		frontend.sin_addr.s_addr = INADDR_ANY;
+
+	  	// Cria socket
+		sockid = socket(AF_INET, SOCK_DGRAM, 0);
+	 	if (sockid == ERROR) {
+			printf("Error opening socket\n");
+			(*frontend_port) += 1;
+		}
+		else{
+			// Faz o bind
+		  	if(bind(sockid, (struct sockaddr *) &frontend, sizeof(frontend)) == ERROR) { 
+					perror("Falha na nomeação do socket\n");
+					(*frontend_port) += 1;
+		  	}
+			else{
+				//socket aberto com sucesso. open = 1 encerra o while.
+				open = 1;
+			}	
+		}
+	}
+	
+	
+
+	printf("\n Porta frontEnd: %d", *frontend_port);
+	return sockid;	
+}
+
+
 int loginServidor(char *host, int port) {
 	struct sockaddr_in serv_conn, from;
 	Frame pacote;
-	int funcaoRetorno, sock;
+	int funcaoRetorno, sock, sock2;
 	pthread_t frontendthread_id;
-
+	int frontend_port = 32000;
+	char frontend_itoa[8];
 	
 	unsigned int tamanho;
 	
-	//Configuração de abertura do socket
+	//Configuração de abertura do socket para transmissão de arquivos
 	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 		printf("Erro ao abrir o socket! \n");
 	else
 		printf("Primeiro cliente socket = %i\n", sock);
 	
 	user.socket_id = sock;
+	
+	
+	//configuração de abertura do socket do front end
+	// frontend_port pode ter sido alterado durante a função openFrontEnd.
+	sock2 = openFrontEnd(&frontend_port);
+	sprintf(frontend_itoa, "%d", frontend_port);
 
 	//Configuração de conexao IP/Porta
 	bzero((char *) &serv_conn, sizeof(serv_conn));
@@ -266,6 +313,7 @@ int loginServidor(char *host, int port) {
 	bzero(pacote.user, MAXNAME-1);
 	strcpy(pacote.user, user.nome);
 	bzero(pacote.buffer, BUFFER_SIZE -1);
+	strcpy(pacote.buffer, frontend_itoa);
 	pacote.message_id = ID_MSG_CLIENT;
 	pacote.ack = FALSE;
  
