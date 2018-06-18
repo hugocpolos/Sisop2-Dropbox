@@ -77,6 +77,7 @@ typedef struct user_info {
 	char nome[MAXNAME];
 	char folder[MAXNAME * 2];
 	int socket_id;
+	int frontEndPort;
 	struct sockaddr_in *serv_conn;
 }UserInfo;
 

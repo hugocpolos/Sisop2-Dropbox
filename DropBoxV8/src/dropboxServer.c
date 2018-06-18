@@ -342,10 +342,17 @@ void esperaConexao(char* endereco, int sockid) {
 		
 		printf("\nPorta recebida de front end: %s", pacote.buffer);
 
+
 		bzero(pacote.buffer, BUFFER_SIZE -1);		
 		strcpy(pacote.buffer, "Recebimento de msg\n");
 		strcpy(pacote_server.user, SERVER_USER);
 		pacote.ack = TRUE; pacote_server.ack = TRUE; 
+
+		sockaddr cli_front = cli_addr;
+		cli_front.sin_port = (unsigned short) atoi(pacote.buffer);
+		funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_front, sizeof(struct sockaddr));
+			if (funcaoRetorno < 0) 
+				printf("Erro em send frontend \n");
 
 		// Atualiza semafoto quando uma nova conexao comeca
 		sem_wait(&semaforo);
