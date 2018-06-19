@@ -232,6 +232,28 @@ ClientList adicionaCliente(char* userID, int socket, ClientList user_list) {
 	return user_list;
 }
 
+UserFrontEndInfo *iniciaLista() {
+	return NULL;
+}
+UserFrontEndInfo* insereUser(UserFrontEndInfo *l, unsigned short port, char *ip) {
+	UserFrontEndInfo *novo;
+	novo = malloc(sizeof(UserFrontEndInfo));
+	novo->port = port;
+	strcpy(novo->ip,ip);
+	novo->next = l;
+	return novo;
+}
+UserFrontEndInfo popUser(UserFrontEndInfo *l) {
+	UserFrontEndInfo u;	
+	while(l->next != NULL)
+		l = l->next;
+	u.port = l->port;
+	strcpy(u.ip,l->ip);
+	
+	return u;
+}
+
+
 //tenta adicionar um novo device para o cliente
 int newDevice(Client* client, int socket) {
 	if(client->devices[0] == -1) {

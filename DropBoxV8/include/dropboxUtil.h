@@ -77,9 +77,15 @@ typedef struct user_info {
 	char nome[MAXNAME];
 	char folder[MAXNAME * 2];
 	int socket_id;
-	int frontEndPort;
 	struct sockaddr_in *serv_conn;
 }UserInfo;
+
+typedef struct user_front_end_info {
+	unsigned short port;
+	char *ip;
+	struct user_front_end_info *next;
+}UserFrontEndInfo;
+
 
 typedef struct connection_info{
 	int socket_id;
@@ -152,6 +158,10 @@ bool verificaDir(char *pathname);
 Client* procuraCliente(char* userId, ClientList user_list);
 Client* procuraCliente_index(int index, ClientList user_list);
 ClientList adicionaCliente(char* userID, int socket, ClientList user_list);
+
+UserFrontEndInfo *iniciaLista();
+UserFrontEndInfo *insereUser(UserFrontEndInfo *l, unsigned short port, char *ip);
+UserFrontEndInfo popUser(UserFrontEndInfo *l);
 
 //DEBUG SECTION
 void imprimeListaUsuarios(ClientList user_list);
