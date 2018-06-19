@@ -324,6 +324,7 @@ void sync_server(int sock_s, Client *client_s) {
 void esperaConexao(char* endereco, int sockid) {	
 	char *client_ip;
 	int  funcaoRetorno;
+	unsigned int frontEnd_port;
 	socklen_t clilen;
 	Frame pacote_server, pacote;
 	
@@ -341,19 +342,30 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("Erro em receive \n");
 		printf("     Iniciou a conexao com um cliente");
 		
-		printf("\nPorta recebida de front end: %s", pacote.buffer);
+		frontEnd_port = atoi(pacote.buffer);
+		printf("\nPorta recebida de front end: %d", frontEnd_port);
 
+		//sleep(1);
 
 		bzero(pacote.buffer, BUFFER_SIZE -1);		
 		strcpy(pacote.buffer, "Recebimento de msg\n");
 		strcpy(pacote_server.user, SERVER_USER);
 		pacote.ack = TRUE; pacote_server.ack = TRUE; 
 
-		cli_front = cli_addr;
-		cli_front.sin_port = (unsigned short) atoi(pacote.buffer);
+		bzero((char *) &cli_front, sizeof(cli_front));
+		cli_front.sin_family = cli_addr.sin_family;
+		cli_front.sin_port = htons(frontEnd_port);
+		cli_front.sin_addr.s_addr = cli_addr.sin_addr.s_addr;
+
+		
+
+		/*
+			Envio de teste no socket de front End:
 		funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_front, sizeof(struct sockaddr));
 			if (funcaoRetorno < 0) 
 				printf("Erro em send frontend \n");
+		*/
+
 
 		// Atualiza semafoto quando uma nova conexao comeca
 		sem_wait(&semaforo);

@@ -423,7 +423,7 @@ void frontend_thread(int socketId){
 
 	// estruturas e variaveis de comunicação em socket udp
 	struct sockaddr_in from;
-	char *novo_host;
+	char* novo_host;
 	int nova_porta;
 	char buffer[BUFFER_SIZE];
 	int valor_ret;
@@ -431,13 +431,13 @@ void frontend_thread(int socketId){
 
 	while(TRUE){
 		valor_ret = recvfrom(socketId, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &size);
-		novo_host = from.sin_addr.s_addr;
+		novo_host = inet_ntoa(from.sin_addr);
 		nova_porta = from.sin_port;
 
-		printf("\nvalor novo_host = %s\nvalor nova_porta = %d", novo_host, nova_porta);
-		//close(user.socket_id);
-		//close(socketId);
-		//loginServidor(novo_host, nova_porta);
+		//printf("\nvalor novo_host = %s\n valor nova_porta = %d", novo_host, nova_porta);
+		close(user.socket_id);
+		close(socketId);
+		loginServidor(novo_host, nova_porta);
 	}
 }
 
