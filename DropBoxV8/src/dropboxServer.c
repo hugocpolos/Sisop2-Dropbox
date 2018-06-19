@@ -11,6 +11,7 @@ ClientList listaClientes;
 ServerList *listaServidores; 
 int syncro;
 int server_primario;
+int eleicao_id;
 
 
 void sincronilis(){
@@ -63,6 +64,96 @@ void get_servers(){
 	//print_listaServidor(listaServidores);
 }
 
+void eleicao(int sock){
+	ServerList *aux;
+	Frame pacote;
+	struct timeval tv;
+	struct sockaddr_in conexao, from;
+	char buffer[16];
+	unsigned int tamanho;
+	
+	tamanho = sizeof(struct sockaddr_in);
+
+	aux = listaServidores;
+	if (aux == NULL) {//não há lista de servidores
+		return;
+	}//else
+
+	//preenche estrutura pacote
+	bzero(pacote.user, MAXNAME-1);
+	bzero(pacote.buffer, BUFFER_SIZE -1);
+	strcpy(pacote.buffer, "_ELEICAO_");
+	pacote.message_id = eleicao_id;
+	pacote.ack = FALSE;
+
+	strcpy(buffer, "000");
+	//envia o pacote para todos os servidores.
+	for (aux = listaServidores; aux = listaServidores->prox; aux != NULL ) {
+		//prepara a estrutura de destino para cada servidor
+		bzero((char *) &conexao, sizeof(conexao));
+		conexao.sin_family = AF_INET;
+		conexao.sin_port = htons(aux->port);
+		conexao.sin_addr.s_addr = inet_addr(aux->host);
+
+		//envia o pacote com timeout de 2 segundos.
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+		if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+			perror("Error");
+		}
+
+		sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+
+		recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+		
+		if(pacote.message_id == eleicao_id){
+			//enviou a ele mesmo. descartar.
+			strcpy(buffer, "000");	
+		}
+	}
+	if(strcmp(buffer,"000") == 0){ //nenhuma mensagem teve resposta, esse é o novo server primario.
+		printf("\n Sou o novo primario\n");
+	
+	}else{//segue esperando pelo novo primario na função eleicao_receive().
+	
+	}	
+	
+}
+
+void eleicao_receive (int sockid){
+	socklen_t clilen;
+	Frame pacote;
+	int novo_eleito = 0; 
+
+	struct sockaddr_in cli_addr;
+	struct sockaddr_in cli_front;
+	clilen = sizeof(struct sockaddr_in);
+
+	//tratamento de erro -> caso os dois tenham a mesma id.
+	if(pacote.message_id == eleicao_id){
+
+	}
+	//verifica id do remetente. Se sua id for maior, envia de volta sua id
+	if(pacote.message_id < eleicao_id){
+		bzero(pacote.user, MAXNAME-1);
+		bzero(pacote.buffer, BUFFER_SIZE -1);		
+		strcpy(pacote.buffer, "_ELEICAO_RESP");
+		pacote.message_id = eleicao_id;
+		pacote.ack = FALSE;
+
+		sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));	
+
+		}else{	//se a id recebida for maior, espera o anuncio do novo primario.
+			while(novo_eleito = 0){				
+				recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
+				if(strcmp(pacote.buffer, "NOVO_ELEITO") == 0){
+				novo_eleito = 1;					
+			}
+		}
+	}
+		//tratamento quando recebe um novo eleito.
+}
+
 void listen_servers(void *unused){
 	char *host_primario;
 	int port_primario;
@@ -108,12 +199,13 @@ void listen_servers(void *unused){
 			if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
 				perror("Error");
 			}
-			valor_retorno = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+			sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
 			//espera resposta.
 			valor_retorno = recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
 			if(strcmp(buffer,"000") == 0){
 				//timeout entre o secundário e o primário, começar eleição.
-				printf("time out.\n");			
+				printf("time out.\n");
+				eleicao(sock);			
 			}else{
 				//printf("ack\n");		
 			}
@@ -424,7 +516,7 @@ void esperaConexao(char* endereco, int sockid) {
 	unsigned int frontEnd_port;
 	char ack_message[8];
 	socklen_t clilen;
-	Frame pacote_server, pacote;
+	Frame pacote_server, pacote; 
 	
 	// Identificador pra thread que vai controlar maximo de acessos
 	pthread_t thread_id;
@@ -439,6 +531,10 @@ void esperaConexao(char* endereco, int sockid) {
 		funcaoRetorno = recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
+		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
+			//recebeu pedido de eleição.
+			eleicao_receive(sockid);
+		}
 		if (strcmp(pacote.buffer, "PING") == 0){
 			//responde ao ping.	
 			//printf("ping\n");
@@ -508,6 +604,7 @@ int main(int argc, char *argv[]) {
 	char *endereco;
 	pthread_t thread_id;
 
+
 	// Inicia semaforo para admitir um determinado numero de clientes */
 	sem_init(&semaforo, 0, MAX_CLIENTS);
 
@@ -536,6 +633,11 @@ int main(int argc, char *argv[]) {
 		server_primario = 0;
 	}
 
+	srand(time(NULL));
+	eleicao_id = rand()%20000;
+
+	printf("\n\n -- id de eleicao : %d -- ", eleicao_id );
+
 	if(server_primario){
 		printf("\nServer primario\n");	
 	}else{
@@ -557,7 +659,7 @@ int main(int argc, char *argv[]) {
 		//função para preencher a estrutura com o endereço dos outros servers.
 		get_servers();
 		// Cria nova thread para dar listen nos outros servidores.
-		if(pthread_create(&thread_id, NULL, listen_servers, NULL))
+		if(pthread_create(&thread_id, NULL, (void *)listen_servers, NULL))
 				printf("Erro ao criar a thread! \n");                 	                	
 		esperaConexao(endereco, sockid);
 	}

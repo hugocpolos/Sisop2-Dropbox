@@ -344,7 +344,7 @@ int loginServidor(char *host, int port) {
 	sync_client(); 
 
 	//cria a thread de front end
-	if(pthread_create(&frontendthread_id, NULL, frontend_thread, sock2) < 0){
+	if(pthread_create(&frontendthread_id, NULL, (void *)frontend_thread, sock2) < 0){
 		printf("Erro ao criar a thread! \n");
 	}
 	return SUCCESS;
