@@ -9,6 +9,7 @@ ServerInfo serverInfo;
 sem_t semaforo;
 ClientList listaClientes; 
 int syncro;
+int server_primario;
 
 void enviar_novoaddress(){
 	int index = 0;
@@ -404,7 +405,7 @@ int main(int argc, char *argv[]) {
 	// Inicia semaforo para admitir um determinado numero de clientes */
 	sem_init(&semaforo, 0, MAX_CLIENTS);
 
-	if (argc > 3) {
+	if (argc > 4) {
 		puts("Numero de argumentos nao e valido!");
 		return ERROR;
 	}
@@ -412,19 +413,28 @@ int main(int argc, char *argv[]) {
 	endereco = malloc(strlen(DEFAULT_ADDRESS));	
 
 	// Parsing
-	if (argc == 3) {
+	if (argc == 4) {
 		if (strlen(argv[1]) != strlen(DEFAULT_ADDRESS)) {
 			free(endereco);
 			endereco = malloc(strlen(argv[1]));
 		}  
 		strcpy(endereco, argv[1]);
 		port = atoi(argv[2]);
+		if ( strcmp(argv[3], "--p") == 0 ){
+			server_primario = 1;		
+		}
 			
 	} else {
 		strcpy(endereco, DEFAULT_ADDRESS);
 		port = DEFAULT_PORT;
+		server_primario = 0;
 	}
 
+	if(server_primario){
+		printf("\nServer primario\n");	
+	}else{
+		printf("\nServer secundario\n");	
+	}
 	// Criando socket e config bind
 	sockid = openServidor(endereco, port);
 	if (sockid != ERROR) {
