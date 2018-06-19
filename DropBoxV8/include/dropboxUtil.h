@@ -60,6 +60,13 @@
 #define S_UPLOAD "upload"
 #define S_OK "ok"
 
+typedef struct server_list{
+	int primario;	// 1: primario 0: secundário
+	char *host;		//endereço ip do server
+	int port;		//porta do server
+	struct server_list *prox;	//ponteiro para a chave do próximo servidor.
+}ServerList;
+
 typedef struct file_info{
 	char name[MAXNAME];
 	char extension[MAXNAME];

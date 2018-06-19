@@ -25,18 +25,20 @@ void get_servers(){
 	FILE *fp;
 	char s_host[16];
 	char s_port_char[16];
+	char s_primario[8];
 	char *ret_val;
 	int server_port;	
 
 	printf("\ninicio do get_servers");
 	fp = fopen ("sinfo.txt", "r");
 	do{
+		ret_val = fgets(s_primario, sizeof(s_primario), fp);
 		ret_val = fgets(s_host, sizeof(s_host), fp);
 		ret_val = fgets(s_port_char, sizeof(s_port_char), fp);
 		server_port = atoi(s_port_char);
 		
 		if(ret_val != NULL){
-			printf("\nhost %sport %d\n", s_host, server_port);
+			printf("\ntipo: %s host %s port %d\n", s_primario, s_host, server_port);
 			//adiciona_server(server_host, server_port, ListaServers);
 		}
 	}while(ret_val != NULL);
