@@ -29,7 +29,6 @@ void get_servers(){
 	char *ret_val;
 	int server_port;	
 
-	printf("\ninicio do get_servers");
 	fp = fopen ("sinfo.txt", "r");
 	do{
 		ret_val = fgets(s_primario, sizeof(s_primario), fp);
@@ -38,7 +37,7 @@ void get_servers(){
 		server_port = atoi(s_port_char);
 		
 		if(ret_val != NULL){
-			printf("\ntipo: %s host %s port %d\n", s_primario, s_host, server_port);
+			//printf("\ntipo: %s host %s port %d\n", s_primario, s_host, server_port);
 			//adiciona_server(server_host, server_port, ListaServers);
 		}
 	}while(ret_val != NULL);
@@ -482,9 +481,9 @@ int main(int argc, char *argv[]) {
 		//função para preencher a estrutura com o endereço dos outros servers.
 		get_servers();
 		// Cria nova thread para dar listen nos outros servidores.
-		//if(pthread_create(&thread_id, NULL, listen_servers, NULL))
-			//	printf("Erro ao criar a thread! \n");                 	                	
-		//esperaConexao(endereco, sockid);
+		if(pthread_create(&thread_id, NULL, listen_servers, NULL))
+				printf("Erro ao criar a thread! \n");                 	                	
+		esperaConexao(endereco, sockid);
 	}
 	return 0;
 }
