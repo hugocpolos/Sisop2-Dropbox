@@ -299,4 +299,70 @@ void imprimeArqsCliente(Client* client){
 	}
 }
 
+//funções referentes a fila de servidores.
+ServerList *init_serverlist(ServerList *lista){
+	lista = NULL;
+	return lista;
+}
+
+ServerList *adiciona_server(int tipo, char *host, int port, ServerList *lista){
+	ServerList *novo;		
+
+	//printf("\n adicionando server:\ntipo: %d\nhost: %s\nporta: %d \n", tipo, host,port);
+	novo = malloc(sizeof(ServerList));
+	//printf("malloc ok\n");
+	novo->primario = tipo;
+	//printf("novo->primario: %d\n", novo->primario);
+	strcpy(novo->host, host);
+	//printf("novo->host: %s\n", novo->host);
+	novo->port = port;
+	//printf("novo->port: %d\n", novo->port);
+	//printf("\nalocação bem sucedida\n");
+
+	if(lista == NULL){ //lista vazia, novo elemento é a própria lista.
+		novo->prox = NULL;
+		return novo;
+	}else{
+		novo->prox = lista;
+		return novo;
+	}
+}
+
+
+char *get_hostPrimario(ServerList *listaServidores){
+	ServerList *aux;
+	aux = listaServidores;
+	while (aux != NULL){
+		if(aux->primario == 1){
+			//printf("host: %s", aux->host);
+			return aux->host;
+		}
+		aux = aux->prox;	
+	}
+	return NULL;
+	
+}
+
+int get_portPrimario(ServerList *listaServidores){
+	ServerList *aux;
+	aux = listaServidores;
+	while (aux != NULL){
+		if(aux->primario == 1){
+			return aux->port;
+		}
+		aux = aux->prox;	
+	}
+	return NULL;
+}
+
+void print_listaServidor(ServerList *listaServidores){
+	ServerList *aux;
+	aux = listaServidores;
+	while (aux != NULL){
+		printf("\nServer:\nTipo: %d\nHost: %s\nPorta: %d\n \n", aux->primario, aux->host, aux->port);
+		aux = aux->prox;	
+	}
+	return NULL;
+}
+
 #endif

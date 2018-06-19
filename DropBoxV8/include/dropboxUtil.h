@@ -62,7 +62,7 @@
 
 typedef struct server_list{
 	int primario;	// 1: primario 0: secundário
-	char *host;		//endereço ip do server
+	char host[16];		//endereço ip do server
 	int port;		//porta do server
 	struct server_list *prox;	//ponteiro para a chave do próximo servidor.
 }ServerList;
@@ -169,6 +169,13 @@ ClientList adicionaCliente(char* userID, int socket, ClientList user_list);
 UserFrontEndInfo *iniciaLista();
 UserFrontEndInfo *insereUser(UserFrontEndInfo *l, unsigned short port, char *ip);
 UserFrontEndInfo popUser(UserFrontEndInfo *l);
+
+//lista servidores
+ServerList *adiciona_server(int tipo, char *host, int port, ServerList *lista);
+ServerList *init_serverlist(ServerList *lista);
+void print_listaServidor(ServerList *listaServidores);
+int get_portPrimario(ServerList *listaServidores);
+char *get_hostPrimario(ServerList *listaServidores);
 
 //DEBUG SECTION
 void imprimeListaUsuarios(ClientList user_list);

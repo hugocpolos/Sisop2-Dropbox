@@ -7,9 +7,11 @@
 // Uso de variaveis globais para simplificar
 ServerInfo serverInfo;
 sem_t semaforo;
-ClientList listaClientes; 
+ClientList listaClientes;
+ServerList *listaServidores; 
 int syncro;
 int server_primario;
+
 
 void sincronilis(){
     while(1){
@@ -27,30 +29,82 @@ void get_servers(){
 	char s_port_char[16];
 	char s_primario[8];
 	char *ret_val;
-	int server_port;	
+	int server_port;
+	int primario;
+	int i = 0;
+	char comp_char = '0';	
 
+	listaServidores = init_serverlist(listaServidores);
 	fp = fopen ("sinfo.txt", "r");
 	do{
+		i = 0;
+		comp_char = '0';
 		ret_val = fgets(s_primario, sizeof(s_primario), fp);
+		if(s_primario[0] == 'p' || s_primario[0] == 'P'){
+			primario = 1;
+		}else{
+			primario = 0;		
+		}
 		ret_val = fgets(s_host, sizeof(s_host), fp);
+		while(comp_char != '\n'){
+			comp_char = s_host[i];
+			i++;
+		}
+		s_host[i-1] = '\0';
 		ret_val = fgets(s_port_char, sizeof(s_port_char), fp);
 		server_port = atoi(s_port_char);
 		
 		if(ret_val != NULL){
 			//printf("\ntipo: %s host %s port %d\n", s_primario, s_host, server_port);
-			//adiciona_server(server_host, server_port, ListaServers);
+			listaServidores = adiciona_server(primario, s_host, server_port, listaServidores);
 		}
 	}while(ret_val != NULL);
-
 	fclose(fp);
+	//print_listaServidor(listaServidores);
 }
 
 void listen_servers(void *unused){
+	char *host_primario;
+	int port_primario;
+	int sock;
+	struct sockaddr_in conexao, from;
+	int valor_retorno;
+	char buffer[16];
+	unsigned int tamanho;
+	Frame pacote;
+	
+	tamanho = sizeof(struct sockaddr_in);
+
 	if(server_primario){
 		//se o servidor for primário, ele deve receber pings dos servidores secundários e enviar acks, identificando-o como online.	
 	}
-	else{
-		//se o servidor for secundário, ele deve enviar um ping para o servidor primario e esperar seu ACK, identificando a falha no server primário.
+	else{//servidor secundário:
+		//descobre qual o server primario.
+		host_primario = get_hostPrimario(listaServidores);
+		port_primario = get_portPrimario(listaServidores);
+
+		//abre socket para comunicação com o server primario.
+		if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+			printf("Erro ao abrir o socket! \n");
+
+		bzero((char *) &conexao, sizeof(conexao));
+		conexao.sin_family = AF_INET;
+		conexao.sin_port = htons(port_primario);
+		conexao.sin_addr.s_addr = inet_addr(host_primario);
+		//preenche estrutura pacote. Isso acontece pois a recepção de ping acontece no mesmo local da conexão de novos clientes.
+		bzero(pacote.user, MAXNAME-1);
+		bzero(pacote.buffer, BUFFER_SIZE -1);
+		strcpy(pacote.buffer, "PING");
+		pacote.message_id = 0;
+		pacote.ack = FALSE;
+
+		while (1){//envia ping
+			sleep(3);
+			valor_retorno = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+			//espera resposta.
+			valor_retorno = recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+			printf("ack do primario\n");
+		}
 	}
 }
 
@@ -370,59 +424,66 @@ void esperaConexao(char* endereco, int sockid) {
 		funcaoRetorno = recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
-		printf("     Iniciou a conexao com um cliente");
-		
-		frontEnd_port = atoi(pacote.buffer);
-		printf("\nPorta recebida de front end: %d", frontEnd_port);
-
-		//sleep(1);
-
-		bzero(pacote.buffer, BUFFER_SIZE -1);		
-		strcpy(pacote.buffer, "Recebimento de msg\n");
-		strcpy(pacote_server.user, SERVER_USER);
-		pacote.ack = TRUE; pacote_server.ack = TRUE; 
-
-		bzero((char *) &cli_front, sizeof(cli_front));
-		cli_front.sin_family = cli_addr.sin_family;
-		cli_front.sin_port = htons(frontEnd_port);
-		cli_front.sin_addr.s_addr = cli_addr.sin_addr.s_addr;
-
-		
-
-		/*
-			Envio de teste no socket de front End:
-		funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_front, sizeof(struct sockaddr));
-			if (funcaoRetorno < 0) 
-				printf("Erro em send frontend \n");
-		*/
-
-
-		// Atualiza semafoto quando uma nova conexao comeca
-		sem_wait(&semaforo);
-		
-		// inet_ntoa converte o endereco de rede em string
-      	client_ip = inet_ntoa(cli_addr.sin_addr); 
-
-		// Abre nova conexao com um cliente
-		Connection *connection = malloc(sizeof(*connection));
-		
-		if (novaPortaServidor(endereco, connection) == SUCCESS) {
-			connection->ip = client_ip;
-			// Pega info do cliente
-			strcpy(connection->client_id, pacote.user);
-
-			// Cria nova thread para controlar acesso do cliente no servidor
-			if(pthread_create(&thread_id, NULL, threadCliente, (void*) connection) < 0)
-				printf("Erro ao criar a thread! \n");                        
-                                                                       
-			// Enviar nova porta para o cliente
-			sprintf(pacote.buffer, "%d", connection->port);
-			strcpy(connection->buffer, pacote.buffer);
+		if (strcmp(pacote.buffer, "PING") == 0){
+			//responde ao ping.	
+			printf("ping\n");
 			funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-			if (funcaoRetorno < 0) 
-				printf("Erro em send \n");
 		}
-		else printf("\n Erro ao criar nova conexao para o cliente! \n");
+		else{
+			printf("     Iniciou a conexao com um cliente");
+		
+			frontEnd_port = atoi(pacote.buffer);
+			printf("\nPorta recebida de front end: %d", frontEnd_port);
+
+			//sleep(1);
+
+			bzero(pacote.buffer, BUFFER_SIZE -1);		
+			strcpy(pacote.buffer, "Recebimento de msg\n");
+			strcpy(pacote_server.user, SERVER_USER);
+			pacote.ack = TRUE; pacote_server.ack = TRUE; 
+
+			bzero((char *) &cli_front, sizeof(cli_front));
+			cli_front.sin_family = cli_addr.sin_family;
+			cli_front.sin_port = htons(frontEnd_port);
+			cli_front.sin_addr.s_addr = cli_addr.sin_addr.s_addr;
+
+		
+
+			/*
+				Envio de teste no socket de front End:
+			funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_front, sizeof(struct sockaddr));
+				if (funcaoRetorno < 0) 
+					printf("Erro em send frontend \n");
+			*/
+
+
+			// Atualiza semafoto quando uma nova conexao comeca
+			sem_wait(&semaforo);
+		
+			// inet_ntoa converte o endereco de rede em string
+		  	client_ip = inet_ntoa(cli_addr.sin_addr); 
+
+			// Abre nova conexao com um cliente
+			Connection *connection = malloc(sizeof(*connection));
+		
+			if (novaPortaServidor(endereco, connection) == SUCCESS) {
+				connection->ip = client_ip;
+				// Pega info do cliente
+				strcpy(connection->client_id, pacote.user);
+
+				// Cria nova thread para controlar acesso do cliente no servidor
+				if(pthread_create(&thread_id, NULL, threadCliente, (void*) connection) < 0)
+					printf("Erro ao criar a thread! \n");                        
+		                                                                   
+				// Enviar nova porta para o cliente
+				sprintf(pacote.buffer, "%d", connection->port);
+				strcpy(connection->buffer, pacote.buffer);
+				funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+				if (funcaoRetorno < 0) 
+					printf("Erro em send \n");
+			}
+			else printf("\n Erro ao criar nova conexao para o cliente! \n");
+		}
 	}
 }
 
