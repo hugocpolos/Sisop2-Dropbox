@@ -11,12 +11,6 @@ ClientList listaClientes;
 int syncro;
 int server_primario;
 
-void enviar_novoaddress(){
-	int index = 0;
-	
-}
-
-
 void sincronilis(){
     while(1){
        sleep(5);
@@ -25,6 +19,40 @@ void sincronilis(){
        syncro = 0;
     }
 }
+
+void get_servers(){
+
+	FILE *fp;
+	char s_host[16];
+	char s_port_char[16];
+	char *ret_val;
+	int server_port;	
+
+	printf("\ninicio do get_servers");
+	fp = fopen ("sinfo.txt", "r");
+	do{
+		ret_val = fgets(s_host, sizeof(s_host), fp);
+		ret_val = fgets(s_port_char, sizeof(s_port_char), fp);
+		server_port = atoi(s_port_char);
+		
+		if(ret_val != NULL){
+			printf("\nhost %sport %d\n", s_host, server_port);
+			//adiciona_server(server_host, server_port, ListaServers);
+		}
+	}while(ret_val != NULL);
+
+	fclose(fp);
+}
+
+void listen_servers(void *unused){
+	if(server_primario){
+		//se o servidor for primário, ele deve receber pings dos servidores secundários e enviar acks, identificando-o como online.	
+	}
+	else{
+		//se o servidor for secundário, ele deve enviar um ping para o servidor primario e esperar seu ACK, identificando a falha no server primário.
+	}
+}
+
 void receiveArquivo(char* nomeArq, int sockid, int id) {
 	int funcaoRetorno;
 	int bytesRecebidos;
@@ -401,6 +429,7 @@ int main(int argc, char *argv[]) {
 
 	int port, sockid;
 	char *endereco;
+	pthread_t thread_id;
 
 	// Inicia semaforo para admitir um determinado numero de clientes */
 	sem_init(&semaforo, 0, MAX_CLIENTS);
@@ -447,8 +476,13 @@ int main(int argc, char *argv[]) {
 				printf("Erro ao criar pasta do servidor = '%s'.\n", serverInfo.folder);
 				return ERROR;
 			}
-		}                	                	
-		esperaConexao(endereco, sockid);
+		}
+		//função para preencher a estrutura com o endereço dos outros servers.
+		get_servers();
+		// Cria nova thread para dar listen nos outros servidores.
+		//if(pthread_create(&thread_id, NULL, listen_servers, NULL))
+			//	printf("Erro ao criar a thread! \n");                 	                	
+		//esperaConexao(endereco, sockid);
 	}
 	return 0;
 }
