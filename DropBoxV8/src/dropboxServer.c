@@ -69,9 +69,11 @@ void listen_servers(void *unused){
 	int sock;
 	struct sockaddr_in conexao, from;
 	int valor_retorno;
-	char buffer[16];
+	char buffer[8];
 	unsigned int tamanho;
 	Frame pacote;
+	struct timeval tv;
+
 	
 	tamanho = sizeof(struct sockaddr_in);
 
@@ -100,10 +102,21 @@ void listen_servers(void *unused){
 
 		while (1){//envia ping
 			sleep(3);
+			strcpy(buffer, "000");
+			tv.tv_sec = 1;
+			tv.tv_usec = 100000;
+			if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+				perror("Error");
+			}
 			valor_retorno = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
 			//espera resposta.
 			valor_retorno = recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
-			printf("ack do primario\n");
+			if(strcmp(buffer,"000") == 0){
+				//timeout entre o secundário e o primário, começar eleição.
+				printf("time out.\n");			
+			}else{
+				//printf("ack\n");		
+			}
 		}
 	}
 }
@@ -409,6 +422,7 @@ void esperaConexao(char* endereco, int sockid) {
 	char *client_ip;
 	int  funcaoRetorno;
 	unsigned int frontEnd_port;
+	char ack_message[8];
 	socklen_t clilen;
 	Frame pacote_server, pacote;
 	
@@ -419,15 +433,16 @@ void esperaConexao(char* endereco, int sockid) {
 	struct sockaddr_in cli_front;
 	clilen = sizeof(struct sockaddr_in);
     // Controla ack recebidos pelo servidor
-	pacote_server.ack = FALSE; 
+	pacote_server.ack = FALSE;
+	strcpy(ack_message, "ACK"); 
 	while (TRUE) {
 		funcaoRetorno = recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
 		if (strcmp(pacote.buffer, "PING") == 0){
 			//responde ao ping.	
-			printf("ping\n");
-			funcaoRetorno = sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+			//printf("ping\n");
+			funcaoRetorno = sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 		}
 		else{
 			printf("     Iniciou a conexao com um cliente");
