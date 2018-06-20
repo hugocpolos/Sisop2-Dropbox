@@ -89,7 +89,7 @@ typedef struct user_info {
 
 typedef struct user_front_end_info {
 	unsigned short port;
-	char *ip;
+	char ip[16];
 	struct user_front_end_info *next;
 }UserFrontEndInfo;
 
@@ -170,7 +170,6 @@ ClientList adicionaCliente(char* userID, int socket, ClientList user_list);
 
 UserFrontEndInfo *iniciaLista();
 UserFrontEndInfo *insereUser(UserFrontEndInfo *l, unsigned short port, char *ip);
-UserFrontEndInfo popUser(UserFrontEndInfo *l);
 void imprimeUser(UserFrontEnd l);
 
 //lista servidores

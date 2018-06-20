@@ -235,25 +235,16 @@ ClientList adicionaCliente(char* userID, int socket, ClientList user_list) {
 UserFrontEnd iniciaLista() {
 	return NULL;
 }
-UserFrontEnd insereUser(UserFrontEnd l, unsigned short port, char *ip) {
+UserFrontEnd insereUser(UserFrontEnd l, unsigned short port, char ip[]) {
 	UserFrontEndInfo *novo = malloc(sizeof(UserFrontEndInfo));
 	novo->port = port;
 	strcpy(novo->ip,ip);
 	novo->next = l;
 	return novo;
 }
-UserFrontEndInfo popUser(UserFrontEndInfo *l) {
-	UserFrontEndInfo u;	
-	while(l->next != NULL)
-		l = l->next;
-	u.port = l->port;
-	strcpy(u.ip,l->ip);
-	
-	return u;
-}
 
 void imprimeUser(UserFrontEnd l) {
-	while (l->next != NULL) {
+	while (l != NULL) {
 		printf("ip:%s\tporta:%d\n",l->ip,l->port);
 		l = l->next;
 	}
