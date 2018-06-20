@@ -632,7 +632,7 @@ void esperaConexao(char* endereco, int sockid) {
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
 
-		if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND")) {
+		if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND") == 0) {
 			printf("atualiza lsita frontend\n");
 			lUserFrontEnd = insereUser(lUserFrontEnd, pacote.message_id, pacote.user);
 			sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
