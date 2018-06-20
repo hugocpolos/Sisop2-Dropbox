@@ -168,8 +168,8 @@ Client* procuraCliente(char* userId, ClientList user_list);
 Client* procuraCliente_index(int index, ClientList user_list);
 ClientList adicionaCliente(char* userID, int socket, ClientList user_list);
 
-UserFrontEndInfo *iniciaLista();
-UserFrontEndInfo *insereUser(UserFrontEndInfo *l, unsigned short port, char *ip);
+UserFrontEnd iniciaLista();
+UserFrontEnd insereUser(UserFrontEndInfo *l, unsigned short port, char *ip);
 void imprimeUser(UserFrontEnd l);
 
 //lista servidores

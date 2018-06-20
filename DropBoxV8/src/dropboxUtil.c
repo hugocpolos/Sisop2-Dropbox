@@ -244,6 +244,7 @@ UserFrontEnd insereUser(UserFrontEnd l, unsigned short port, char ip[]) {
 }
 
 void imprimeUser(UserFrontEnd l) {
+	printf("imprimindo lista User front End\n\n");
 	while (l != NULL) {
 		printf("ip:%s\tporta:%d\n",l->ip,l->port);
 		l = l->next;
