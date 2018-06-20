@@ -74,6 +74,8 @@ void eleicao(int sock){
 	
 	tamanho = sizeof(struct sockaddr_in);
 
+	printf("\nInicio da eleicao\n");
+
 	aux = listaServidores;
 	if (aux == NULL) {//não há lista de servidores
 		return;
@@ -88,15 +90,17 @@ void eleicao(int sock){
 
 	strcpy(buffer, "000");
 	//envia o pacote para todos os servidores.
-	for (aux = listaServidores; aux = listaServidores->prox; aux != NULL ) {
+	for (aux = listaServidores; aux != NULL;  aux = aux->prox) {
 		//prepara a estrutura de destino para cada servidor
 		bzero((char *) &conexao, sizeof(conexao));
 		conexao.sin_family = AF_INET;
 		conexao.sin_port = htons(aux->port);
 		conexao.sin_addr.s_addr = inet_addr(aux->host);
 
+		printf("\nEnviando id = %d para o servidor host=%s porta=%d\n", pacote.message_id, aux->host, aux->port);		
+
 		//envia o pacote com timeout de 2 segundos.
-		tv.tv_sec = 0;
+		tv.tv_sec = 2;
 		tv.tv_usec = 100000;
 		if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
 			perror("Error");
@@ -105,7 +109,9 @@ void eleicao(int sock){
 		sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
 
 		recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
-		
+		if(strcmp(buffer,"000") == 0){
+			printf("\ntimeout da mensagem de eleicao\n");		
+		}
 		if(pacote.message_id == eleicao_id){
 			//enviou a ele mesmo. descartar.
 			strcpy(buffer, "000");	
@@ -120,18 +126,18 @@ void eleicao(int sock){
 	
 }
 
-void eleicao_receive (int sockid){
+void eleicao_receive (int sockid, Frame pacote){
 	socklen_t clilen;
-	Frame pacote;
 	int novo_eleito = 0; 
 
 	struct sockaddr_in cli_addr;
 	struct sockaddr_in cli_front;
 	clilen = sizeof(struct sockaddr_in);
 
+	printf("\nRecebeu pedido de eleição com id : %d \n", pacote.message_id);
 	//tratamento de erro -> caso os dois tenham a mesma id.
 	if(pacote.message_id == eleicao_id){
-
+		return;
 	}
 	//verifica id do remetente. Se sua id for maior, envia de volta sua id
 	if(pacote.message_id < eleicao_id){
@@ -533,12 +539,18 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("Erro em receive \n");
 		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//recebeu pedido de eleição.
-			eleicao_receive(sockid);
+			//eleicao_receive(sockid, pacote);
+		}
+		if (strcmp(pacote.buffer, "_ELEICAO_RESP") == 0){
+			bzero(pacote.buffer, BUFFER_SIZE -1);
 		}
 		if (strcmp(pacote.buffer, "PING") == 0){
 			//responde ao ping.	
 			//printf("ping\n");
 			funcaoRetorno = sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+		}
+		if (strcmp(pacote.buffer, "PING") == 0 || strcmp(pacote.buffer, "_ELEICAO_RESP") == 0 || strcmp(pacote.buffer, "_ELEICAO_") == 0){
+			//faz nada.		
 		}
 		else{
 			printf("     Iniciou a conexao com um cliente");
