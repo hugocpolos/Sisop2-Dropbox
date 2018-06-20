@@ -650,6 +650,41 @@ void sync_server(int sock_s, Client *client_s) {
 	synchronize_server(sock_s, client_s, serverInfo);
 }
 
+void envia_conexao_secundarios(Frame pacote){
+
+	//envia o pacote de conexão ao primario para os demais servidores.
+	ServerList *aux;
+	int sock;
+	struct sockaddr_in conexao;
+	int valor_ret;
+
+	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+		printf("Erro ao abrir o socket! \n");
+	
+	
+	for (aux = listaServidores; aux != NULL;  aux = aux->prox) {
+
+		if(aux->port == porta_global && strcmp(aux->host, endereco_global) == 0){
+			printf("\n\n****nao enviando para mim mesmo\n\n");		
+		}else{
+		
+			//prepara a estrutura de destino para cada servidor
+			bzero((char *) &conexao, sizeof(conexao));
+			conexao.sin_family = AF_INET;
+			conexao.sin_port = htons(aux->port);
+			conexao.sin_addr.s_addr = inet_addr(aux->host);
+
+			valor_ret = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+
+			if(valor_ret < 0){
+				printf("\nerro em send\n");		
+			}
+		}
+	}
+
+	close(sock);
+	return;
+}
 
 // Conecta servidor a algum cliente
 void esperaConexao(char* endereco, int sockid) {	
@@ -717,7 +752,8 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("     Iniciou a conexao com um cliente");
 		
 			
-			
+			if(server_primario)
+				envia_conexao_secundarios(pacote);
 
 			//Atualiza lista FrontEnd User
 			frontEnd_port = atoi(pacote.buffer);
@@ -725,7 +761,7 @@ void esperaConexao(char* endereco, int sockid) {
 			client_ip = inet_ntoa(cli_addr.sin_addr);
 			lUserFrontEnd = insereUser(lUserFrontEnd, frontEnd_port, client_ip);
 			imprimeUser(lUserFrontEnd);
-			atualizaFrontEnd();
+			//atualizaFrontEnd();
 
 
 			bzero(pacote.buffer, BUFFER_SIZE -1);		
