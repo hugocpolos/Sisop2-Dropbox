@@ -144,7 +144,7 @@ void eleicao(){
 }
 
 void atualizaFrontEnd() {
-	ServerList *aux;
+	ServerList *aux = listaServidores;
 	Frame pacote;
 	struct sockaddr_in conexao, from;
 	char buffer[16];
