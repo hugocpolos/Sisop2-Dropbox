@@ -8,10 +8,12 @@
 ServerInfo serverInfo;
 sem_t semaforo;
 ClientList listaClientes;
-ServerList *listaServidores; 
+ServerList *listaServidores;
+UserFrontEnd lUserFrontEnd = NULL; 
 int syncro;
 int server_primario;
 int eleicao_id;
+int eleicao_running = 0;
 
 
 void sincronilis(){
@@ -210,22 +212,25 @@ void listen_servers(void *unused){
 		pacote.ack = FALSE;
 
 		while (1){//envia ping
-			sleep(3);
-			strcpy(buffer, "000");
-			tv.tv_sec = 1;
-			tv.tv_usec = 100000;
-			if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-				perror("Error");
-			}
-			sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
-			//espera resposta.
-			valor_retorno = recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
-			if(strcmp(buffer,"000") == 0){
-				//timeout entre o secundário e o primário, começar eleição.
-				printf("time out.\n");
-				eleicao();			
-			}else{
-				//printf("ack\n");		
+			if(eleicao_running == 0){
+				sleep(3);
+				strcpy(buffer, "000");
+				tv.tv_sec = 1;
+				tv.tv_usec = 100000;
+				if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+					perror("Error");
+				}
+				sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+				//espera resposta.
+				valor_retorno = recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+				if(strcmp(buffer,"000") == 0){
+					//timeout entre o secundário e o primário, começar eleição.
+					printf("time out.\n");
+					eleicao_running = 1;
+					eleicao();			
+				}else{
+					//printf("ack\n")
+				}		
 			}
 		}
 	}
@@ -579,10 +584,15 @@ void esperaConexao(char* endereco, int sockid) {
 		else{
 			printf("     Iniciou a conexao com um cliente");
 		
-			frontEnd_port = atoi(pacote.buffer);
+			
 			printf("\nPorta recebida de front end: %d", frontEnd_port);
 
-			//sleep(1);
+			//Atualiza lista FrontEnd User
+			frontEnd_port = atoi(pacote.buffer);
+			client_ip = inet_ntoa(cli_addr.sin_addr);
+			lUserFrontEnd = insereUser(lUserFrontEnd, frontEnd_port, client_ip);
+			imprimeUser(lUserFrontEnd);
+
 
 			bzero(pacote.buffer, BUFFER_SIZE -1);		
 			strcpy(pacote.buffer, "Recebimento de msg\n");
