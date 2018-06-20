@@ -143,6 +143,29 @@ void eleicao(){
 	
 }
 
+void atualizaFrontEnd() {
+	ServerList *aux;
+	Frame pacote;
+	struct sockaddr_in conexao, from;
+	char buffer[16];
+	int sock;
+	
+	if (aux == NULL) {//não há lista de servidores
+		return;
+	}
+	//abre socket para comunicação com os outros servidores.
+	else if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+		printf("Erro ao abrir o socket! \n");
+	
+	strcpy(pacote.buffer,"_ATUALIZA_FRONTENDS");
+	pacote.message_id = lUserFrontEnd->port;
+	strcpy(pacote.user,lUserFrontEnd->ip);
+
+	
+	printf("\npacote.buffer:%s\npacote.user:%s\npacote.message_id:%d\n",pacote.buffer,pacote.user,pacote.message_id);	
+	
+}
+
 /*void resp_eleicao (int sockid, Frame pacote, struct sockaddr_in cli_addr){
 	socklen_t clilen;
 	int novo_eleito = 0; 
@@ -557,6 +580,10 @@ void esperaConexao(char* endereco, int sockid) {
 		printf("\n=============recebeu: %s ================\n", pacote.buffer);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
+
+		/*if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND") {
+		//atuliza lista
+		}*/
 		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//recebeu pedido de eleição.
 			//se o id recebido for menor que o da thread, responde a eleição.
@@ -585,13 +612,15 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("     Iniciou a conexao com um cliente");
 		
 			
-			printf("\nPorta recebida de front end: %d", frontEnd_port);
+			
 
 			//Atualiza lista FrontEnd User
 			frontEnd_port = atoi(pacote.buffer);
+			printf("\nPorta recebida de front end: %d", frontEnd_port);
 			client_ip = inet_ntoa(cli_addr.sin_addr);
 			lUserFrontEnd = insereUser(lUserFrontEnd, frontEnd_port, client_ip);
 			imprimeUser(lUserFrontEnd);
+			atualizaFrontEnd();
 
 
 			bzero(pacote.buffer, BUFFER_SIZE -1);		
