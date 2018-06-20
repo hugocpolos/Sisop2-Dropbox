@@ -275,7 +275,7 @@ int openFrontEnd(int *frontend_port) {
 	
 	
 
-	printf("\n Porta frontEnd: %d", *frontend_port);
+	//printf("\n Porta frontEnd: %d", *frontend_port);
 	return sockid;	
 }
 
@@ -293,9 +293,9 @@ int loginServidor(char *host, int port) {
 	//Configuração de abertura do socket para transmissão de arquivos
 	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 		printf("Erro ao abrir o socket! \n");
-	else
-		printf("Primeiro cliente socket = %i\n", sock);
-	
+	else{
+		//printf("Primeiro cliente socket = %i\n", sock);
+		}
 	user.socket_id = sock;
 	
 	
@@ -425,15 +425,15 @@ void frontend_thread(int socketId){
 	struct sockaddr_in from;
 	char* novo_host;
 	int nova_porta;
-	char buffer[BUFFER_SIZE];
+	Frame pacote;
 	int valor_ret;
 	unsigned int size = sizeof(struct sockaddr_in);
+	
 
 	while(TRUE){
-		valor_ret = recvfrom(socketId, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &size);
-		novo_host = inet_ntoa(from.sin_addr);
-		nova_porta = from.sin_port;
-
+		valor_ret = recvfrom(socketId, &pacote, sizeof(pacote), 0, (struct sockaddr *) &from, &size);
+		novo_host = pacote.user;
+		nova_porta = pacote.message_id;
 		//printf("\nvalor novo_host = %s\n valor nova_porta = %d", novo_host, nova_porta);
 		close(user.socket_id);
 		close(socketId);

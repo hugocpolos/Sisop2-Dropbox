@@ -82,6 +82,49 @@ void atualiza_primario(char *host_primario, int porta_primario){
 	return;
 }
 
+void envia_novoPrimario_frontend(){
+	UserFrontEnd aux;
+	int sock;
+	Frame pacote;
+	int valor_ret;
+	struct sockaddr_in conexao;
+
+	
+	printf("\niniciando envia_novoPrimario_frontend()\n");	
+
+	aux = lUserFrontEnd;
+	if(aux == NULL){
+		printf("lista nao existe\n");	
+	}
+	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+		printf("Erro ao abrir o socket! \n");
+
+	bzero(pacote.user, MAXNAME-1);
+	bzero(pacote.buffer, BUFFER_SIZE -1);
+	strcpy(pacote.user, endereco_global);
+	strcpy(pacote.buffer, "NOVO_LIDER");
+	pacote.message_id = porta_global;
+	pacote.ack = FALSE;	
+
+	for(aux = lUserFrontEnd; aux != NULL; aux = aux->next){
+		
+
+		printf("\nenviando novo primario para o cliente ip: %s porta %d\n", aux->ip, aux->port);
+		//prepara a estrutura de destino para cada front-end.
+		bzero((char *) &conexao, sizeof(conexao));
+		conexao.sin_family = AF_INET;
+		conexao.sin_port = htons(aux->port);
+		conexao.sin_addr.s_addr = inet_addr(aux->ip);
+
+		valor_ret = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+
+		if(valor_ret < 0){
+			printf("\nerro em send\n");		
+		}
+	}
+	close(sock);
+}	
+
 void envia_novoPrimario_servers(){
 	ServerList *aux;
 	Frame pacote;
@@ -193,11 +236,14 @@ void eleicao(){
 	if(strcmp(buffer,"000") == 0){ //nenhuma mensagem teve resposta, esse é o novo server primario.
 		printf("\n Sou o novo primario\n");
 		server_primario = 1;
-		eleicao_running = 0;
 		envia_novoPrimario_servers();
+		envia_novoPrimario_frontend();
+		eleicao_running = 0;
+		close(sock);
+		return;
 	
 	}else{//segue esperando pelo novo primario na função eleicao_receive().
-	
+		return;
 	}	
 	
 }
@@ -238,7 +284,7 @@ void atualizaFrontEnd() {
 		if(valor_ret < 0){
 			printf("\nerro em send\n");		
 		}
-		recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+		//recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
 		
 		if(strcmp(buffer,"ACK") == 0){
 			printf("\natualizado.\n");
@@ -250,7 +296,7 @@ void atualizaFrontEnd() {
 void listen_servers(void *unused){
 	char *host_primario;
 	int port_primario;
-	int sock;
+	int sock = 0;
 	struct sockaddr_in conexao, from;
 	int valor_retorno;
 	char buffer[8];
@@ -263,7 +309,7 @@ void listen_servers(void *unused){
 
 	while(1){
 
-		if(server_primario){
+		if(server_primario == 1){
 			//se o servidor for primário, ele deve receber pings dos servidores secundários e enviar acks, identificando-o como online.	
 		}
 		else if(eleicao_running == 0){//servidor secundário:
@@ -271,10 +317,11 @@ void listen_servers(void *unused){
 			host_primario = get_hostPrimario(listaServidores);
 			port_primario = get_portPrimario(listaServidores);
 
-			//abre socket para comunicação com o server primario.
-			if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-				printf("Erro ao abrir o socket! \n");
-
+			if(!sock){
+				//abre socket para comunicação com o server primario.
+				if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+					printf("Erro ao abrir o socket! \n");
+			}
 			bzero((char *) &conexao, sizeof(conexao));
 			conexao.sin_family = AF_INET;
 			conexao.sin_port = htons(port_primario);
@@ -300,12 +347,10 @@ void listen_servers(void *unused){
 				if(strcmp(buffer,"000") == 0){
 					//timeout entre o secundário e o primário, começar eleição.
 					printf("time out.\n");
-					eleicao_running = 1;
-					eleicao();			
-				}else{
-					//printf("ack\n")
+					eleicao_running = 1;		
 				}
 			}
+			eleicao();
 		}
 	}
 }
@@ -631,11 +676,12 @@ void esperaConexao(char* endereco, int sockid) {
 		printf("\n=============recebeu: %s ================\n", pacote.buffer);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
+		
 
 		if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND") == 0) {
-			printf("atualiza lsita frontend\n");
+			printf("atualiza lista frontend\n");
 			lUserFrontEnd = insereUser(lUserFrontEnd, pacote.message_id, pacote.user);
-			sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
+			imprimeUser(lUserFrontEnd);
 		}
 		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//recebeu pedido de eleição.
@@ -650,8 +696,14 @@ void esperaConexao(char* endereco, int sockid) {
 				//espera novo primario.			
 			}
 		}
-		if (strcmp(pacote.buffer, "NOVO_LIDER") == 0){
-			bzero(pacote.buffer, BUFFER_SIZE -1);
+		if (strcmp(pacote.buffer, "NOVO_LIDER") == 0){ //host é enviado no pacote.user e porta no pacote.message_id.
+			if(strcmp(pacote.user, endereco_global) == 0 && pacote.message_id == porta_global){				
+				//novo lider é ele mesmo, não faz nada
+			}else{
+				atualiza_primario(pacote.user, pacote.message_id);
+				eleicao_running = 0;
+				//atualiza estrutura dos servidores e avisa as outras threads que a eleicao acabou.	
+			}
 		}
 		if (strcmp(pacote.buffer, "PING") == 0){
 			//responde ao ping.	

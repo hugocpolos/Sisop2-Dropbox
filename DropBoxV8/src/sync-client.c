@@ -25,7 +25,7 @@ void synchronize_local(UserInfo user) {
 	Frame packet;
 	length = sizeof(struct sockaddr_in);
 
-	printf(" Inicializando sincronizacao cliente\n");		//debug
+	//printf(" Inicializando sincronizacao cliente\n");		//debug
 	strcpy(packet.buffer, S_NSYNC);
 	packet.ack == FALSE;
 	
@@ -55,7 +55,7 @@ void synchronize_local(UserInfo user) {
 	}
 
 	number_files_server = atoi(packet.buffer);
-	printf("%d arquivos no servidor\n", number_files_server); //debug
+	//printf("%d arquivos no servidor\n", number_files_server); //debug
 
 	for(int i = 0; i < number_files_server; i++) {
 		do { 
@@ -119,7 +119,7 @@ void synchronize_local(UserInfo user) {
 		}	
 	}
 
-	printf(" Encerrando sincronizacao do cliente\n");		//debug
+	//printf(" Encerrando sincronizacao do cliente\n");		//debug
 }
 
 
@@ -138,7 +138,7 @@ void synchronize_remote(UserInfo user) {
 	struct sockaddr_in* serv_addr = user.serv_conn;
 	unsigned int length = sizeof(struct sockaddr_in);
 
-	printf(" Iniciando sincronizacao do servidor\n");	//debug
+	//printf(" Iniciando sincronizacao do servidor\n");	//debug
 
 	number_files_client = getInfoDirArq(user.folder, localFiles);
 	sprintf(packet.buffer, "%d", number_files_client);
@@ -206,7 +206,7 @@ void synchronize_remote(UserInfo user) {
 		}
 	}
 
-	printf(" Encerrando sincronizacao servidor\n");		//debug
+	//printf(" Encerrando sincronizacao servidor\n");		//debug
 }
 
 #endif
