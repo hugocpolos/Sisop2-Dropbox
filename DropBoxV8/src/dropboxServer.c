@@ -214,10 +214,10 @@ void atualizaFrontEnd() {
 
 	
 	if (aux == NULL) {//não há lista de servidores
-		return;
+		//return;
 	}
 	//abre socket para comunicação com os outros servidores.
-	else if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 		printf("Erro ao abrir o socket! \n");
 	
 	strcpy(pacote.buffer,"_ATUALIZA_FRONTEND");
@@ -658,7 +658,7 @@ void esperaConexao(char* endereco, int sockid) {
 			//printf("ping\n");
 			funcaoRetorno = sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 		}
-		if (strcmp(pacote.buffer, "PING") == 0 || strcmp(pacote.buffer, "NOVO_LIDER") == 0 || strcmp(pacote.buffer, "_ELEICAO_") == 0){
+		if (strcmp(pacote.buffer, "PING") == 0 || strcmp(pacote.buffer, "NOVO_LIDER") == 0 || strcmp(pacote.buffer, "_ELEICAO_") == 0  || strcmp(pacote.buffer, "_ATUALIZA_FRONTEND") == 0){
 			//faz nada.		
 		}
 		else{
