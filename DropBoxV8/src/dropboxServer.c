@@ -15,6 +15,9 @@ int server_primario;
 int eleicao_id;
 int eleicao_running = 0;
 
+char endereco_global[16];
+int porta_global;
+
 
 void sincronilis(){
     while(1){
@@ -66,6 +69,58 @@ void get_servers(){
 	//print_listaServidor(listaServidores);
 }
 
+void atualiza_primario(char *host_primario, int porta_primario){
+	ServerList *aux;
+
+	//iteração: seta todos como primario, e quando encontrar o novo primario seta ele como primario.
+	for (aux = listaServidores; aux != NULL;  aux = aux->prox) {
+		aux->primario = 0;
+		if(strcmp(aux->host, host_primario) == 0 && aux->port == porta_primario){
+			aux->primario = 1;
+		}	
+	}
+	return;
+}
+
+void envia_novoPrimario_servers(){
+	ServerList *aux;
+	Frame pacote;
+	int sock;
+	struct sockaddr_in conexao;
+	int valor_ret;
+
+	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+		printf("Erro ao abrir o socket! \n");
+	
+	bzero(pacote.user, MAXNAME-1);
+	bzero(pacote.buffer, BUFFER_SIZE -1);
+	strcpy(pacote.user, endereco_global);
+	strcpy(pacote.buffer, "NOVO_LIDER");
+	pacote.message_id = porta_global;
+	pacote.ack = FALSE;
+	
+	for (aux = listaServidores; aux != NULL;  aux = aux->prox) {
+
+		//prepara a estrutura de destino para cada servidor
+		bzero((char *) &conexao, sizeof(conexao));
+		conexao.sin_family = AF_INET;
+		conexao.sin_port = htons(aux->port);
+		conexao.sin_addr.s_addr = inet_addr(aux->host);
+
+		valor_ret = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+
+		if(valor_ret < 0){
+			printf("\nerro em send\n");		
+		}
+	
+	}
+	
+	atualiza_primario(endereco_global, porta_global);
+
+	close(sock);
+	return;
+}
+
 void eleicao(){
 	ServerList *aux;
 	Frame pacote;
@@ -109,7 +164,7 @@ void eleicao(){
 		printf("\nEnviando id = %d para o servidor host=%s porta=%d\n", pacote.message_id, aux->host, aux->port);		
 
 		//envia o pacote com timeout de 2 segundos.
-		tv.tv_sec = 2;
+		tv.tv_sec = 0;
 		tv.tv_usec = 100000;
 		if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
 			perror("Error");
@@ -124,6 +179,7 @@ void eleicao(){
 		
 		if(strcmp(buffer,"_ELEICAO_RESP") == 0){
 			printf("\nNão sou o primario.\n");
+			close(sock);
 			return;		
 		}
 		if(strcmp(buffer,"000") == 0){
@@ -136,43 +192,15 @@ void eleicao(){
 	}
 	if(strcmp(buffer,"000") == 0){ //nenhuma mensagem teve resposta, esse é o novo server primario.
 		printf("\n Sou o novo primario\n");
+		server_primario = 1;
+		eleicao_running = 0;
+		envia_novoPrimario_servers();
 	
 	}else{//segue esperando pelo novo primario na função eleicao_receive().
 	
 	}	
 	
 }
-
-/*void resp_eleicao (int sockid, Frame pacote, struct sockaddr_in cli_addr){
-	socklen_t clilen;
-	int novo_eleito = 0; 
-	clilen = sizeof(struct sockaddr_in);
-
-	printf("\nRecebeu pedido de eleição com id : %d \n", pacote.message_id);
-	//tratamento de erro -> caso os dois tenham a mesma id.
-	if(pacote.message_id == eleicao_id){
-		return;
-	}
-	//verifica id do remetente. Se sua id for maior, envia de volta sua id
-	if(pacote.message_id < eleicao_id){
-		bzero(pacote.user, MAXNAME-1);
-		bzero(pacote.buffer, BUFFER_SIZE -1);		
-		strcpy(pacote.buffer, "_ELEICAO_RESP");
-		pacote.message_id = eleicao_id;
-		pacote.ack = FALSE;
-
-			
-
-		}else{	//se a id recebida for maior, espera o anuncio do novo primario.
-			while(novo_eleito = 0){				
-				recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
-				if(strcmp(pacote.buffer, "NOVO_ELEITO") == 0){
-				novo_eleito = 1;					
-			}
-		}
-	}
-		//tratamento quando recebe um novo eleito.
-}*/
 
 void listen_servers(void *unused){
 	char *host_primario;
@@ -188,31 +216,32 @@ void listen_servers(void *unused){
 	
 	tamanho = sizeof(struct sockaddr_in);
 
-	if(server_primario){
-		//se o servidor for primário, ele deve receber pings dos servidores secundários e enviar acks, identificando-o como online.	
-	}
-	else{//servidor secundário:
-		//descobre qual o server primario.
-		host_primario = get_hostPrimario(listaServidores);
-		port_primario = get_portPrimario(listaServidores);
+	while(1){
 
-		//abre socket para comunicação com o server primario.
-		if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-			printf("Erro ao abrir o socket! \n");
+		if(server_primario){
+			//se o servidor for primário, ele deve receber pings dos servidores secundários e enviar acks, identificando-o como online.	
+		}
+		else if(eleicao_running == 0){//servidor secundário:
+			//descobre qual o server primario.
+			host_primario = get_hostPrimario(listaServidores);
+			port_primario = get_portPrimario(listaServidores);
 
-		bzero((char *) &conexao, sizeof(conexao));
-		conexao.sin_family = AF_INET;
-		conexao.sin_port = htons(port_primario);
-		conexao.sin_addr.s_addr = inet_addr(host_primario);
-		//preenche estrutura pacote. Isso acontece pois a recepção de ping acontece no mesmo local da conexão de novos clientes.
-		bzero(pacote.user, MAXNAME-1);
-		bzero(pacote.buffer, BUFFER_SIZE -1);
-		strcpy(pacote.buffer, "PING");
-		pacote.message_id = 0;
-		pacote.ack = FALSE;
+			//abre socket para comunicação com o server primario.
+			if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+				printf("Erro ao abrir o socket! \n");
 
-		while (1){//envia ping
-			if(eleicao_running == 0){
+			bzero((char *) &conexao, sizeof(conexao));
+			conexao.sin_family = AF_INET;
+			conexao.sin_port = htons(port_primario);
+			conexao.sin_addr.s_addr = inet_addr(host_primario);
+			//preenche estrutura pacote. Isso acontece pois a recepção de ping acontece no mesmo local da conexão de novos clientes.
+			bzero(pacote.user, MAXNAME-1);
+			bzero(pacote.buffer, BUFFER_SIZE -1);
+			strcpy(pacote.buffer, "PING");
+			pacote.message_id = 0;
+			pacote.ack = FALSE;
+
+			while (eleicao_running == 0){//envia ping
 				sleep(3);
 				strcpy(buffer, "000");
 				tv.tv_sec = 1;
@@ -230,7 +259,7 @@ void listen_servers(void *unused){
 					eleicao();			
 				}else{
 					//printf("ack\n")
-				}		
+				}
 			}
 		}
 	}
@@ -678,6 +707,9 @@ int main(int argc, char *argv[]) {
 		port = DEFAULT_PORT;
 		server_primario = 0;
 	}
+
+	strcpy(endereco_global, endereco);
+	porta_global = port;	
 
 	srand(time(NULL));
 	eleicao_id = rand()%20000;
