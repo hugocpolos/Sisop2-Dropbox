@@ -64,13 +64,16 @@ void get_servers(){
 	//print_listaServidor(listaServidores);
 }
 
-void eleicao(int sock){
+void eleicao(){
 	ServerList *aux;
 	Frame pacote;
+	int valor_ret;
 	struct timeval tv;
 	struct sockaddr_in conexao, from;
 	char buffer[16];
 	unsigned int tamanho;
+	int sock;
+	
 	
 	tamanho = sizeof(struct sockaddr_in);
 
@@ -81,6 +84,10 @@ void eleicao(int sock){
 		return;
 	}//else
 
+	//abre socket para comunicação com os outros servidores.
+	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+		printf("Erro ao abrir o socket! \n");
+	
 	//preenche estrutura pacote
 	bzero(pacote.user, MAXNAME-1);
 	bzero(pacote.buffer, BUFFER_SIZE -1);
@@ -106,9 +113,17 @@ void eleicao(int sock){
 			perror("Error");
 		}
 
-		sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+		valor_ret = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
 
+		if(valor_ret < 0){
+			printf("\nerro em send\n");		
+		}
 		recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+		
+		if(strcmp(buffer,"_ELEICAO_RESP") == 0){
+			printf("\nNão sou o primario.\n");
+			return;		
+		}
 		if(strcmp(buffer,"000") == 0){
 			printf("\ntimeout da mensagem de eleicao\n");		
 		}
@@ -126,12 +141,9 @@ void eleicao(int sock){
 	
 }
 
-void eleicao_receive (int sockid, Frame pacote){
+/*void resp_eleicao (int sockid, Frame pacote, struct sockaddr_in cli_addr){
 	socklen_t clilen;
 	int novo_eleito = 0; 
-
-	struct sockaddr_in cli_addr;
-	struct sockaddr_in cli_front;
 	clilen = sizeof(struct sockaddr_in);
 
 	printf("\nRecebeu pedido de eleição com id : %d \n", pacote.message_id);
@@ -147,7 +159,7 @@ void eleicao_receive (int sockid, Frame pacote){
 		pacote.message_id = eleicao_id;
 		pacote.ack = FALSE;
 
-		sendto(sockid, &pacote, sizeof(pacote), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));	
+			
 
 		}else{	//se a id recebida for maior, espera o anuncio do novo primario.
 			while(novo_eleito = 0){				
@@ -158,7 +170,7 @@ void eleicao_receive (int sockid, Frame pacote){
 		}
 	}
 		//tratamento quando recebe um novo eleito.
-}
+}*/
 
 void listen_servers(void *unused){
 	char *host_primario;
@@ -211,7 +223,7 @@ void listen_servers(void *unused){
 			if(strcmp(buffer,"000") == 0){
 				//timeout entre o secundário e o primário, começar eleição.
 				printf("time out.\n");
-				eleicao(sock);			
+				eleicao();			
 			}else{
 				//printf("ack\n");		
 			}
@@ -521,6 +533,7 @@ void esperaConexao(char* endereco, int sockid) {
 	int  funcaoRetorno;
 	unsigned int frontEnd_port;
 	char ack_message[8];
+	char resp_eleicao[16];
 	socklen_t clilen;
 	Frame pacote_server, pacote; 
 	
@@ -532,16 +545,27 @@ void esperaConexao(char* endereco, int sockid) {
 	clilen = sizeof(struct sockaddr_in);
     // Controla ack recebidos pelo servidor
 	pacote_server.ack = FALSE;
-	strcpy(ack_message, "ACK"); 
+	strcpy(ack_message, "ACK");
+	strcpy(resp_eleicao, "_ELEICAO_RESP");
 	while (TRUE) {
 		funcaoRetorno = recvfrom(sockid, &pacote, sizeof(pacote), 0, (struct sockaddr *) &cli_addr, &clilen);
+		printf("\n=============recebeu: %s ================\n", pacote.buffer);
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
 		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//recebeu pedido de eleição.
-			//eleicao_receive(sockid, pacote);
+			//se o id recebido for menor que o da thread, responde a eleição.
+			printf("\nRecebeu pedido de eleição com id : %d \n", pacote.message_id);
+			if(pacote.message_id < eleicao_id){
+				printf("\nminha id é maior. Respondendo\n");
+				sendto(sockid, &resp_eleicao, sizeof(resp_eleicao), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));				
+				//resp_eleicao(sockid, pacote, cli_addr);
+			}
+			else{
+				//espera novo primario.			
+			}
 		}
-		if (strcmp(pacote.buffer, "_ELEICAO_RESP") == 0){
+		if (strcmp(pacote.buffer, "NOVO_LIDER") == 0){
 			bzero(pacote.buffer, BUFFER_SIZE -1);
 		}
 		if (strcmp(pacote.buffer, "PING") == 0){
@@ -549,7 +573,7 @@ void esperaConexao(char* endereco, int sockid) {
 			//printf("ping\n");
 			funcaoRetorno = sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 		}
-		if (strcmp(pacote.buffer, "PING") == 0 || strcmp(pacote.buffer, "_ELEICAO_RESP") == 0 || strcmp(pacote.buffer, "_ELEICAO_") == 0){
+		if (strcmp(pacote.buffer, "PING") == 0 || strcmp(pacote.buffer, "NOVO_LIDER") == 0 || strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//faz nada.		
 		}
 		else{
