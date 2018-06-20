@@ -205,9 +205,13 @@ void eleicao(){
 void atualizaFrontEnd() {
 	ServerList *aux = listaServidores;
 	Frame pacote;
+	int valor_ret;
 	struct sockaddr_in conexao, from;
 	char buffer[16];
 	int sock;
+	unsigned int tamanho;
+	tamanho = sizeof(struct sockaddr_in);
+
 	
 	if (aux == NULL) {//não há lista de servidores
 		return;
@@ -216,13 +220,31 @@ void atualizaFrontEnd() {
 	else if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 		printf("Erro ao abrir o socket! \n");
 	
-	strcpy(pacote.buffer,"_ATUALIZA_FRONTENDS");
+	strcpy(pacote.buffer,"_ATUALIZA_FRONTEND");
 	pacote.message_id = lUserFrontEnd->port;
 	strcpy(pacote.user,lUserFrontEnd->ip);
+	
+	for (aux = listaServidores; aux != NULL;  aux = aux->prox) {
+		//prepara a estrutura de destino para cada servidor
+		bzero((char *) &conexao, sizeof(conexao));
+		conexao.sin_family = AF_INET;
+		conexao.sin_port = htons(aux->port);
+		conexao.sin_addr.s_addr = inet_addr(aux->host);
 
-	
-	printf("\npacote.buffer:%s\npacote.user:%s\npacote.message_id:%d\n",pacote.buffer,pacote.user,pacote.message_id);	
-	
+		printf("\nEnviando id = %d para o servidor host=%s porta=%d\n", pacote.message_id, aux->host, aux->port);		
+
+		valor_ret = sendto(sock, &pacote, sizeof(pacote), 0, (const struct sockaddr *) &conexao, sizeof(struct sockaddr_in));
+
+		if(valor_ret < 0){
+			printf("\nerro em send\n");		
+		}
+		recvfrom(sock, &buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &tamanho);
+		
+		if(strcmp(buffer,"ACK") == 0){
+			printf("\natualizado.\n");
+			return;		
+		}
+	}
 }
 
 void listen_servers(void *unused){
@@ -610,9 +632,11 @@ void esperaConexao(char* endereco, int sockid) {
 		if (funcaoRetorno < 0) 
 			printf("Erro em receive \n");
 
-		/*if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND") {
-		//atuliza lista
-		}*/
+		if (strcmp(pacote.buffer, "_ATUALIZA_FRONTEND")) {
+			printf("atualiza lsita frontend\n");
+			lUserFrontEnd = insereUser(lUserFrontEnd, pacote.message_id, pacote.user);
+			sendto(sockid, &ack_message, sizeof(ack_message), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
+		}
 		if (strcmp(pacote.buffer, "_ELEICAO_") == 0){
 			//recebeu pedido de eleição.
 			//se o id recebido for menor que o da thread, responde a eleição.
