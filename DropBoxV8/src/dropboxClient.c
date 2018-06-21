@@ -263,7 +263,7 @@ int openFrontEnd(int *frontend_port) {
 		else{
 			// Faz o bind
 		  	if(bind(sockid, (struct sockaddr *) &frontend, sizeof(frontend)) == ERROR) { 
-					perror("Falha na nomeação do socket\n");
+					//perror("Falha na nomeação do socket\n");
 					(*frontend_port) += 1;
 		  	}
 			else{

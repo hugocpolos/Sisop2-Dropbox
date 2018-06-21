@@ -235,7 +235,24 @@ ClientList adicionaCliente(char* userID, int socket, ClientList user_list) {
 UserFrontEnd iniciaLista() {
 	return NULL;
 }
+
+int existe_frontend(UserFrontEnd l, unsigned short port, char ip[]){
+	UserFrontEnd aux;
+	aux = l;
+	for(aux = l; aux != NULL; aux = aux->next){
+		if(port == aux->port && strcmp(ip, aux->ip) == 0){
+			return 1;		
+		}
+	}
+	return 0;
+}
+
 UserFrontEnd insereUser(UserFrontEnd l, unsigned short port, char ip[]) {
+
+	if(existe_frontend (l, port, ip) == 1 ){
+		return l;	
+	}	
+	
 	UserFrontEndInfo *novo = malloc(sizeof(UserFrontEndInfo));
 	novo->port = port;
 	strcpy(novo->ip,ip);
