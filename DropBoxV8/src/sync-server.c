@@ -14,7 +14,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 	struct sockaddr_in cli_addr;
 	clilen = sizeof(struct sockaddr_in);
 
-	//printf("\n     Iniciando sincronização do cliente.\n");	//debug
+	printf("\n     Iniciando sincronização do cliente.\n");	//debug
 
 	/* Getting an ACK */
 	/* SYNC	*/
@@ -33,7 +33,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 
 	sprintf(packet.buffer, "%d", client_sync->n_files);
 	packet.ack = FALSE; strcpy(packet.user, SERVER_USER);
-	//printf("     Numero de arquivos do cliente: %d.\n", client_sync->n_files);	//debug
+	printf("     Numero de arquivos do cliente: %d.\n", client_sync->n_files);	//debug
 
 	/* Writes the number of files in server */
 	while(packet.ack != TRUE){
@@ -100,7 +100,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 		    }
 	  }
 
-	  //printf("     Encerrando sincronização do cliente.\n");
+	  printf("     Encerrando sincronização do cliente.\n");
 }
 
 void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverInfo) {
@@ -123,7 +123,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 	int sockid = sockid_sync;
 
 
-	//printf("     Iniciando sincronização do servidor.\n");	//debug
+	printf("     Iniciando sincronização do servidor.\n");	//debug
 
 	/* Reads number of client's files */
 	do {
@@ -135,7 +135,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 
 
 	number_files_client = atoi(packet.buffer);
-	//printf("     Numero de arquivos do cliente no servidor: %d\n", number_files_client);
+	printf("     Numero de arquivos do cliente no servidor: %d\n", number_files_client);
 
 	for(int i = 0; i < number_files_client; i++) {
 
@@ -208,7 +208,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 	    }
 	}
 
-	//printf("     Encerrando sincronização do servidor.\n");		//debug
+	printf("     Encerrando sincronização do servidor.\n");		//debug
 }
 
 #endif
