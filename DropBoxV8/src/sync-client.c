@@ -73,7 +73,7 @@ void synchronize_local(UserInfo user) {
 		}
 
 		strcpy(file_name, packet.buffer);
-		printf(" Nome recebido: %s\n", file_name);			//debug
+		//printf(" Nome recebido: %s\n", file_name);			//debug
 
 		do {
 		    /* Receives the date of last file modification from server */
@@ -90,7 +90,7 @@ void synchronize_local(UserInfo user) {
 		}
 
 		strcpy(last_modified, packet.buffer);
-		printf(" Ultima modificacao: %s\n", last_modified);			//debug
+		//printf(" Ultima modificacao: %s\n", last_modified);			//debug
 
 		sprintf(path, "%s/%s", user.folder, file_name);
 
@@ -98,11 +98,11 @@ void synchronize_local(UserInfo user) {
 		getModificado(path, last_modified_file_2);
 
 		if(verificaDir(path) == FALSE) {;					
-			printf("Arquivo %s nao existe... Baixando\n", file_name);	//debug
+			//printf("Arquivo %s nao existe... Baixando\n", file_name);	//debug
 			getArquivoCliente(file_name);
 
 		} else if (arqAntigo(last_modified, last_modified_file_2) == SUCCESS) {
-			printf("Arquivo %s antigo... Baixando\n", file_name);	//debug
+			//printf("Arquivo %s antigo... Baixando\n", file_name);	//debug
 			getArquivoCliente(file_name);
 
 		} else {
@@ -158,7 +158,7 @@ void synchronize_remote(UserInfo user) {
 	for(int i = 0; i < number_files_client; i++) {
 
 		strcpy(packet.buffer, localFiles[i].name);
-		printf(" Nome enviado: %s\n", localFiles[i].name);	//debug
+		//printf(" Nome enviado: %s\n", localFiles[i].name);	//debug
 
 		do { /* ACK */
 			/* Sends file's name to server */
@@ -171,7 +171,7 @@ void synchronize_remote(UserInfo user) {
 		}
 
 		strcpy(packet.buffer, localFiles[i].last_modified);
-		printf(" Ultima modificacao: %s\n", localFiles[i].last_modified);	//debug
+		//printf(" Ultima modificacao: %s\n", localFiles[i].last_modified);	//debug
 		packet.ack = FALSE;
 
 		do { /* ACK */
@@ -202,7 +202,7 @@ void synchronize_remote(UserInfo user) {
 		if(strcmp(packet.buffer, S_GET) == 0) {
 			sprintf(path, "%s/%s", user.folder, localFiles[i].name);
 			//send_file(path, FALSE);					//interface implementation
-			printf(" Enviando arquivo %s\n", path);	//debug
+			//printf(" Enviando arquivo %s\n", path);	//debug
 		}
 	}
 
