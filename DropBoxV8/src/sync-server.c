@@ -14,7 +14,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 	struct sockaddr_in cli_addr;
 	clilen = sizeof(struct sockaddr_in);
 
-	//printf("\n     Iniciando sincronização do cliente.\n");	//debug
+	printf("\n     Iniciando sincronização do cliente.\n");	//debug
 
 	/* Getting an ACK */
 	/* SYNC	*/
@@ -33,7 +33,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 
 	sprintf(packet.buffer, "%d", client_sync->n_files);
 	packet.ack = FALSE; strcpy(packet.user, SERVER_USER);
-	//printf("     Numero de arquivos do cliente: %d.\n", client_sync->n_files);	//debug
+	printf("     Numero de arquivos do cliente: %d.\n", client_sync->n_files);	//debug
 
 	/* Writes the number of files in server */
 	while(packet.ack != TRUE){
@@ -50,7 +50,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 			packet.ack = FALSE;
 
 		    strcpy(packet.buffer, client_sync->files[i].name);
-		    printf("     Nome do arquivo a enviar: %s\n", client_sync->files[i].name);	//debug
+		    //printf("     Nome do arquivo a enviar: %s\n", client_sync->files[i].name);	//debug
 		    
 		    /* Sends the file name to client */
 		    while(packet.ack != TRUE) {
@@ -64,7 +64,7 @@ void synchronize_client(int sockid, Client* client_sync) {
 		    packet.ack = FALSE;
 
 		    strcpy(packet.buffer, client_sync->files[i].last_modified);
-		    printf("     Ultima modificacao: %s\n", client_sync->files[i].last_modified);	//debug
+		    //printf("     Ultima modificacao: %s\n", client_sync->files[i].last_modified);	//debug
 		
 		    /* Sends the file's last modification */
 		    while(packet.ack != TRUE) {
@@ -94,13 +94,13 @@ void synchronize_client(int sockid, Client* client_sync) {
 		    if (status < 0) {
 		      	printf("ERROR reading from socket\n");
 		    }
-		    printf("     Recebido: %s\n", buffer);
+		    //printf("     Recebido: %s\n", buffer);
 		    if(strcmp(buffer, DOWN_REQ) == 0){ 
 		      	sendArquivo(client_sync->files[i].name, sockid, atoi(client_sync->userid), &cli_addr);
 		    }
 	  }
 
-	  //printf("     Encerrando sincronização do cliente.\n");
+	  printf("     Encerrando sincronização do cliente.\n");
 }
 
 void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverInfo) {
@@ -123,7 +123,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 	int sockid = sockid_sync;
 
 
-	//printf("     Iniciando sincronização do servidor.\n");	//debug
+	printf("     Iniciando sincronização do servidor.\n");	//debug
 
 	/* Reads number of client's files */
 	do {
@@ -135,7 +135,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 
 
 	number_files_client = atoi(packet.buffer);
-	//printf("     Numero de arquivos do cliente no servidor: %d\n", number_files_client);
+	printf("     Numero de arquivos do cliente no servidor: %d\n", number_files_client);
 
 	for(int i = 0; i < number_files_client; i++) {
 
@@ -154,7 +154,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 		}
 
 	    strcpy(file_name, packet.buffer);
-	    printf("     Nome recebido: %s\n", file_name);		//debug
+	    //printf("     Nome recebido: %s\n", file_name);		//debug
 		
 		/* Reads last modified from client */
 		do {
@@ -171,7 +171,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 	    	printf("ERROR reading from socket\n");
 	    }
 	    strcpy(last_modified, packet.buffer);
-	    printf("     Ultima modificacao recebido: %s\n", last_modified);	
+	    //printf("     Ultima modificacao recebido: %s\n", last_modified);	
 
     	sprintf(path, "%s/%s/%s", serverInfo.folder, client_sync->userid, file_name);
     	getModificado(path, last_modified_file_2);
@@ -189,7 +189,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 				printf("ERROR writing to socket\n");
 			}
 
-	      	printf("     Recebido: %s\n", packet.buffer);	//buffer
+	      	//printf("     Recebido: %s\n", packet.buffer);	//buffer
 
 	      	if(strcmp(packet.buffer, UP_REQ) == 0) {
 				//upload(sockid_sync, client_sync);	//interface
@@ -208,7 +208,7 @@ void synchronize_server(int sockid_sync, Client* client_sync, ServerInfo serverI
 	    }
 	}
 
-	//printf("     Encerrando sincronização do servidor.\n");		//debug
+	printf("     Encerrando sincronização do servidor.\n");		//debug
 }
 
 #endif

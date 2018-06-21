@@ -94,7 +94,7 @@ void envia_novoPrimario_frontend(){
 
 	aux = lUserFrontEnd;
 	if(aux == NULL){
-		printf("lista nao existe\n");	
+		//printf("lista nao existe\n");	
 	}
 	if((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 		printf("Erro ao abrir o socket! \n");
@@ -752,8 +752,8 @@ void esperaConexao(char* endereco, int sockid) {
 			printf("     Iniciou a conexao com um cliente");
 		
 			
-			if(server_primario)
-				envia_conexao_secundarios(pacote);
+			/*if(server_primario)
+				envia_conexao_secundarios(pacote);*/
 
 			//Atualiza lista FrontEnd User
 			frontEnd_port = atoi(pacote.buffer);
@@ -761,7 +761,7 @@ void esperaConexao(char* endereco, int sockid) {
 			client_ip = inet_ntoa(cli_addr.sin_addr);
 			lUserFrontEnd = insereUser(lUserFrontEnd, frontEnd_port, client_ip);
 			imprimeUser(lUserFrontEnd);
-			//atualizaFrontEnd();
+			atualizaFrontEnd();
 
 
 			bzero(pacote.buffer, BUFFER_SIZE -1);		
